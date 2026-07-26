@@ -1,0 +1,46 @@
+REBOTFOX FIREBASE AUTH + ADMIN YETKİSİ
+
+1) ZIP içindeki lib klasörünü Flutter projenizin köküne kopyalayın.
+2) Var olan home_screen.dart dosyasının değiştirilmesini onaylayın.
+
+EKLENEN DOSYALAR:
+- lib/services/auth_service.dart
+- lib/screens/admin_login_screen.dart
+- lib/screens/admin_gate_screen.dart
+
+DEĞİŞEN:
+- lib/screens/home_screen.dart
+
+FIREBASE CONSOLE AYARLARI
+
+A) Authentication açma:
+Firebase Console > Authentication > Get started
+Sign-in method > Email/Password > Enable
+
+B) Yönetici kullanıcı oluşturma:
+Authentication > Users > Add user
+Bir e-posta ve en az 6 karakterli güçlü bir şifre belirleyin.
+
+C) Kullanıcının UID değerini kopyalayın.
+
+D) Firestore > Data:
+users koleksiyonu oluşturun.
+Belge kimliği olarak UID değerini kullanın.
+Alan ekleyin:
+role = admin   (string)
+
+E) FIRESTORE_RULES.txt içindeki kuralları:
+Firestore > Rules bölümüne yapıştırıp Publish düğmesine basın.
+
+ÇALIŞTIRMA:
+flutter clean
+flutter pub get
+flutter run -d zxfmnrfidqeuroo7
+
+TEST:
+Ana sayfa > kullanıcı simgesi > Yönetici girişi
+Firebase Authentication'da oluşturduğunuz e-posta ve şifreyle giriş yapın.
+
+NOT:
+repair_requests okuması şu aşamada müşteri takip ekranı için açık bırakıldı.
+Durum güncelleme ve silme yalnızca admin rolüne verildi.

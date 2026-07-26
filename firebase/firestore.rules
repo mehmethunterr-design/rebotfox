@@ -10,8 +10,14 @@ service cloud.firestore {
                     && request.resource.data.status is string
                     && request.resource.data.estimatedPrice is number
                     && request.resource.data.createdAt is timestamp
-                    && request.resource.data.updatedAt is timestamp;
-      allow read, update, delete: if true;
+                    && request.resource.data.updatedAt is timestamp
+                    && request.resource.data.beforePhotoUrls is list
+                    && request.resource.data.afterPhotoUrls is list;
+
+      allow read: if true;
+
+      allow update, delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }

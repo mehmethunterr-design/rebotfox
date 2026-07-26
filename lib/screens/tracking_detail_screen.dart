@@ -29,9 +29,7 @@ class TrackingDetailScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              createdNow
-                  ? 'Talep Oluşturuldu'
-                  : 'Servis Takibi',
+              createdNow ? 'Talep Oluşturuldu' : 'Servis Takibi',
             ),
           ),
           body: PageFrame(
@@ -46,13 +44,10 @@ class TrackingDetailScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: AppColors.primary
-                          .withValues(alpha: .12),
-                      borderRadius:
-                          BorderRadius.circular(18),
+                      color: AppColors.primary.withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: AppColors.primary
-                            .withValues(alpha: .35),
+                        color: AppColors.primary.withValues(alpha: .35),
                       ),
                     ),
                     child: const Row(
@@ -74,12 +69,10 @@ class TrackingDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                if (createdNow)
-                  const SizedBox(height: 16),
+                if (createdNow) const SizedBox(height: 16),
                 if (snapshot.hasError)
                   Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
                       'Canlı güncelleme alınamadı: ${snapshot.error}',
                       style: const TextStyle(
@@ -98,12 +91,40 @@ class TrackingDetailScreen extends StatelessWidget {
 }
 
 class _RepairContent extends StatelessWidget {
-  const _RepairContent({required this.repair});
+  const _RepairContent({
+    required this.repair,
+  });
 
   final Repair repair;
 
-  String get price =>
-      '${repair.estimatedPrice.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')} ₺';
+  String get price {
+    final formatted = repair.estimatedPrice.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => '.',
+        );
+
+    return '$formatted ₺';
+  }
+
+  double get progressValue {
+    final currentIndex = RepairStatus.values.indexOf(repair.status);
+    return (currentIndex + 1) / RepairStatus.values.length;
+  }
+
+  int get progressPercent {
+    return (progressValue * 100).round();
+  }
+
+  String get updatedAtText {
+    final date = repair.updatedAt;
+
+    String twoDigits(int value) {
+      return value.toString().padLeft(2, '0');
+    }
+
+    return '${twoDigits(date.day)}.${twoDigits(date.month)}.${date.year} '
+        '${twoDigits(date.hour)}:${twoDigits(date.minute)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,15 +134,13 @@ class _RepairContent extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(22),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Takip Kodu',
@@ -134,8 +153,7 @@ class _RepairContent extends StatelessWidget {
                             repair.trackingCode,
                             style: const TextStyle(
                               fontSize: 23,
-                              fontWeight:
-                                  FontWeight.w900,
+                              fontWeight: FontWeight.w900,
                               letterSpacing: .4,
                             ),
                           ),
@@ -143,14 +161,15 @@ class _RepairContent extends StatelessWidget {
                       ),
                     ),
                     IconButton.filledTonal(
+                      tooltip: 'Takip kodunu kopyala',
                       onPressed: () {
                         Clipboard.setData(
                           ClipboardData(
                             text: repair.trackingCode,
                           ),
                         );
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
+
+                        ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Takip kodu kopyalandı.',
@@ -158,13 +177,29 @@ class _RepairContent extends StatelessWidget {
                           ),
                         );
                       },
-                      icon:
-                          const Icon(Icons.copy_rounded),
+                      icon: const Icon(Icons.copy_rounded),
                     ),
                   ],
                 ),
                 const SizedBox(height: 18),
                 StatusChip(status: repair.status),
+                const SizedBox(height: 18),
+                LinearProgressIndicator(
+                  value: progressValue,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '%$progressPercent tamamlandı',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 const Divider(),
                 const SizedBox(height: 14),
@@ -178,13 +213,15 @@ class _RepairContent extends StatelessWidget {
                 ),
                 _DetailRow(
                   'Tahmini Fiyat',
-                  repair.estimatedPrice > 0
-                      ? price
-                      : 'İnceleme sonrası',
+                  repair.estimatedPrice > 0 ? price : 'İnceleme sonrası',
                 ),
                 _DetailRow(
                   'Müşteri',
                   repair.customerName,
+                ),
+                _DetailRow(
+                  'Son Güncelleme',
+                  updatedAtText,
                 ),
               ],
             ),
@@ -193,41 +230,56 @@ class _RepairContent extends StatelessWidget {
         const SizedBox(height: 18),
         const SectionTitle(
           'Servis Süreci',
-          subtitle:
-              'Cihazınızın geçtiği aşamaları buradan izleyebilirsiniz.',
+          subtitle: 'Cihazınızın geçtiği aşamaları buradan izleyebilirsiniz.',
         ),
         const SizedBox(height: 14),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
-              children:
-                  RepairStatus.values.map((status) {
-                final current =
-                    RepairStatus.values.indexOf(
-                  repair.status,
-                );
-                final index =
-                    RepairStatus.values.indexOf(status);
-                final done = index <= current;
+              children: RepairStatus.values.map((status) {
+                final currentIndex = RepairStatus.values.indexOf(repair.status);
+                final statusIndex = RepairStatus.values.indexOf(status);
+                final done = statusIndex <= currentIndex;
 
                 return _Timeline(
                   status: status,
                   done: done,
-                  last: index ==
-                      RepairStatus.values.length - 1,
+                  current: status == repair.status,
+                  last: statusIndex == RepairStatus.values.length - 1,
                 );
               }).toList(),
             ),
           ),
         ),
+        if (repair.beforePhotoUrls.isNotEmpty ||
+            repair.afterPhotoUrls.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const SectionTitle(
+            'Servis Fotoğrafları',
+            subtitle: 'Tamir öncesi ve sonrası görselleri',
+          ),
+          const SizedBox(height: 14),
+          _ReadOnlyPhotoSection(
+            title: 'Tamir Öncesi',
+            photoUrls: repair.beforePhotoUrls,
+          ),
+          const SizedBox(height: 14),
+          _ReadOnlyPhotoSection(
+            title: 'Tamir Sonrası',
+            photoUrls: repair.afterPhotoUrls,
+          ),
+        ],
       ],
     );
   }
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow(this.label, this.value);
+  const _DetailRow(
+    this.label,
+    this.value,
+  );
 
   final String label;
   final String value;
@@ -235,20 +287,22 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 130,
+          Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(
                 color: AppColors.textMuted,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
           Expanded(
+            flex: 3,
             child: Text(
               value,
               textAlign: TextAlign.right,
@@ -263,45 +317,206 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
+class _ReadOnlyPhotoSection extends StatelessWidget {
+  const _ReadOnlyPhotoSection({
+    required this.title,
+    required this.photoUrls,
+  });
+
+  final String title;
+  final List<String> photoUrls;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (photoUrls.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: AppColors.border,
+              ),
+            ),
+            child: const Text(
+              'Fotoğraf bulunamadı.',
+              style: TextStyle(
+                color: AppColors.textMuted,
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.1,
+            ),
+            itemCount: photoUrls.length,
+            itemBuilder: (context, index) {
+              final photoUrl = photoUrls[index];
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => _PhotoPreviewScreen(
+                        photoUrl: photoUrl,
+                      ),
+                    ),
+                  );
+                },
+                child: Hero(
+                  tag: photoUrl,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (
+                        context,
+                        child,
+                        loadingProgress,
+                      ) {
+                        if (loadingProgress == null) {
+                          return child;
+                        }
+
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                      errorBuilder: (
+                        context,
+                        error,
+                        stackTrace,
+                      ) {
+                        return Container(
+                          color: AppColors.surface,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_rounded,
+                            size: 36,
+                            color: AppColors.textMuted,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _PhotoPreviewScreen extends StatelessWidget {
+  const _PhotoPreviewScreen({
+    required this.photoUrl,
+  });
+
+  final String photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Hero(
+          tag: photoUrl,
+          child: Image.network(
+            photoUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (
+              context,
+              child,
+              loadingProgress,
+            ) {
+              if (loadingProgress == null) {
+                return child;
+              }
+
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            },
+            errorBuilder: (
+              context,
+              error,
+              stackTrace,
+            ) {
+              return const Center(
+                child: Icon(
+                  Icons.broken_image_rounded,
+                  color: Colors.white,
+                  size: 48,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Timeline extends StatelessWidget {
   const _Timeline({
     required this.status,
     required this.done,
+    required this.current,
     required this.last,
   });
 
   final RepairStatus status;
   final bool done;
+  final bool current;
   final bool last;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           children: [
             CircleAvatar(
               radius: 17,
-              backgroundColor: done
-                  ? status.color
-                  : AppColors.surfaceSoft,
+              backgroundColor: done ? status.color : AppColors.surfaceSoft,
               child: Icon(
                 status.icon,
-                color: done
-                    ? AppColors.background
-                    : AppColors.textMuted,
+                color: done ? AppColors.background : AppColors.textMuted,
                 size: 18,
               ),
             ),
             if (!last)
               Container(
                 width: 2,
-                height: 42,
+                height: 48,
                 color: done
-                    ? status.color
-                        .withValues(alpha: .45)
+                    ? status.color.withValues(alpha: .45)
                     : AppColors.border,
               ),
           ],
@@ -309,26 +524,49 @@ class _Timeline extends StatelessWidget {
         const SizedBox(width: 14),
         Expanded(
           child: Padding(
-            padding:
-                const EdgeInsets.only(top: 7),
+            padding: const EdgeInsets.only(top: 6),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  status.label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: done
-                        ? AppColors.text
-                        : AppColors.textMuted,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        status.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: done ? AppColors.text : AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                    if (current)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: status.color.withValues(alpha: .12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Mevcut durum',
+                          style: TextStyle(
+                            color: status.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  done
-                      ? 'Bu aşama tamamlandı veya devam ediyor.'
-                      : 'Henüz bu aşamaya geçilmedi.',
+                  current
+                      ? 'Cihazınız şu anda bu aşamadadır.'
+                      : done
+                          ? 'Bu aşama tamamlandı.'
+                          : 'Henüz bu aşamaya geçilmedi.',
                   style: const TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,

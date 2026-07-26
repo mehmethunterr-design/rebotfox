@@ -35,7 +35,10 @@ class MockRepository {
       problem: 'Ekran kırık ve dokunmatik zaman zaman çalışmıyor.',
       status: RepairStatus.repairing,
       createdAt: DateTime(2026, 7, 25, 13, 30),
+      updatedAt: DateTime(2026, 7, 25, 13, 30),
       estimatedPrice: 4500,
+      beforePhotoUrls: const [],
+      afterPhotoUrls: const [],
     ),
   ];
 
