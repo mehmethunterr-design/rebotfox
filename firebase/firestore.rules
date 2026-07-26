@@ -2,15 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /repair_requests/{documentId} {
-      // Customers can create service requests. Existing records are not publicly listable.
       allow create: if request.resource.data.customerName is string
                     && request.resource.data.phone is string
                     && request.resource.data.brand is string
                     && request.resource.data.model is string
                     && request.resource.data.problem is string
-                    && request.resource.data.status == 'beklemede'
-                    && request.resource.data.price == 0;
-      allow read, update, delete: if false;
+                    && request.resource.data.status is string
+                    && request.resource.data.estimatedPrice is number
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.updatedAt is timestamp;
+      allow read, update, delete: if true;
     }
   }
 }

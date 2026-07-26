@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../core/app_theme.dart';
 
 enum RepairStatus {
@@ -45,6 +47,13 @@ extension RepairStatusX on RepairStatus {
         RepairStatus.ready => Icons.verified_rounded,
         RepairStatus.delivered => Icons.done_all_rounded,
       };
+
+  static RepairStatus fromName(String? value) {
+    return RepairStatus.values.firstWhere(
+      (status) => status.name == value,
+      orElse: () => RepairStatus.requestReceived,
+    );
+  }
 }
 
 class Repair {
@@ -71,4 +80,42 @@ class Repair {
   RepairStatus status;
   final DateTime createdAt;
   final double estimatedPrice;
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'trackingCode': trackingCode,
+      'customerName': customerName,
+      'phone': phone,
+      'brand': brand,
+      'model': model,
+      'repairType': repairType,
+      'problem': problem,
+      'status': status.name,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'estimatedPrice': estimatedPrice,
+    };
+  }
+
+  factory Repair.fromFirestore(
+    String documentId,
+    Map<String, dynamic> data,
+  ) {
+    final rawCreatedAt = data['createdAt'];
+
+    return Repair(
+      trackingCode: (data['trackingCode'] as String?) ?? documentId,
+      customerName: (data['customerName'] as String?) ?? '',
+      phone: (data['phone'] as String?) ?? '',
+      brand: (data['brand'] as String?) ?? '',
+      model: (data['model'] as String?) ?? '',
+      repairType: (data['repairType'] as String?) ?? '',
+      problem: (data['problem'] as String?) ?? '',
+      status: RepairStatusX.fromName(data['status'] as String?),
+      createdAt: rawCreatedAt is Timestamp
+          ? rawCreatedAt.toDate()
+          : DateTime.now(),
+      estimatedPrice: (data['estimatedPrice'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../widgets/common.dart';
 import 'request_screen.dart';
-import 'admin_dashboard.dart';
+import 'admin_gate_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onTabRequested});
@@ -29,9 +29,20 @@ class HomeScreen extends StatelessWidget {
                     tooltip: 'Hesap menüsü',
                     icon: const CircleAvatar(backgroundColor: AppColors.surfaceSoft, child: Icon(Icons.person_rounded, color: AppColors.text)),
                     onSelected: (value) {
-                      if (value == 'admin') Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminDashboard()));
+                      if (value == 'admin') {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AdminGateScreen(),
+                          ),
+                        );
+                      }
                     },
-                    itemBuilder: (_) => const [PopupMenuItem(value: 'admin', child: Text('Admin panelini aç'))],
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'admin',
+                        child: Text('Yönetici girişi'),
+                      ),
+                    ],
                   ),
                 ]),
                 const SizedBox(height: 26),
@@ -172,21 +183,21 @@ class _QuickAction extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(icon, color: AppColors.primary, size: 30),
-              const Spacer(),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-              const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            ]),
-          ),
-        ),
-      );
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: AppColors.primary, size: 30),
+          const Spacer(),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        ]),
+      ),
+    ),
+  );
 }
 
 class _Service extends StatelessWidget {
@@ -195,11 +206,11 @@ class _Service extends StatelessWidget {
   final String title;
   @override
   Widget build(BuildContext context) => Container(
-        width: 170,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
-        child: Row(children: [Icon(icon, color: AppColors.primary), const SizedBox(width: 10), Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))]),
-      );
+    width: 170,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+    child: Row(children: [Icon(icon, color: AppColors.primary), const SizedBox(width: 10), Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))]),
+  );
 }
 
 class _Trust extends StatelessWidget {
@@ -209,15 +220,15 @@ class _Trust extends StatelessWidget {
   final String subtitle;
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .12), child: Icon(icon, color: AppColors.primary)),
-            const Spacer(),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 5),
-            Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .12), child: Icon(icon, color: AppColors.primary)),
+        const Spacer(),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 5),
+        Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      ]),
+    ),
+  );
 }
