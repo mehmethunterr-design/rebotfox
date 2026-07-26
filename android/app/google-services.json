@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "91320773541",
+    "project_id": "rebotfox-4ab5a",
+    "storage_bucket": "rebotfox-4ab5a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:91320773541:android:5df20908b9c2ab6bff564c",
+        "android_client_info": {
+          "package_name": "com.mycompany.rebotfox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAniv9kVInCpa_1BaQ2rhp7mq0TcvYB8NA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
