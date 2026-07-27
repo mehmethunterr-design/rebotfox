@@ -1,0 +1,75 @@
+name: Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/windows-exe
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Flutter kur
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Windows hedefini oluştur
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows --org com.rebotfox --project-name rebotfox .
+          python -m pip install --disable-pip-version-check Pillow
+          @'
+          from PIL import Image
+
+          image = Image.open("assets/images/rebotfox_app_icon.png").convert("RGBA")
+          image.save(
+              "windows/runner/resources/app_icon.ico",
+              format="ICO",
+              sizes=[(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)],
+          )
+          '@ | python -
+          (Get-Content windows/runner/main.cpp -Raw).Replace(
+            'L"rebotfox"',
+            'L"Rebotfox Teknik Servis"'
+          ) | Set-Content windows/runner/main.cpp -Encoding utf8
+
+      - name: Bağımlılıkları yükle
+        run: flutter pub get
+
+      - name: Kod analizi
+        run: flutter analyze
+
+      - name: Testler
+        run: flutter test
+
+      - name: Windows release derle
+        run: flutter build windows --release
+
+      - name: Taşınabilir paketi hazırla
+        shell: pwsh
+        run: |
+          $source = "build/windows/x64/runner/Release"
+          $destination = "dist/Rebotfox-Windows"
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          Copy-Item "$source/*" $destination -Recurse -Force
+          Compress-Archive -Path "$destination/*" -DestinationPath "dist/Rebotfox-Windows-x64.zip" -Force
+
+      - name: EXE paketini yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rebotfox-Windows-x64
+          path: dist/Rebotfox-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
