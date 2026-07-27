@@ -12,6 +12,52 @@ function Invoke-Flutter {
     }
 }
 
+function Get-FirebaseCppSdk {
+    $sdkVersion = '13.9.0'
+    $cacheRoot = Join-Path $env:LOCALAPPDATA 'Rebotfox'
+    $cacheDirectory = Join-Path $cacheRoot "firebase_cpp_sdk_$sdkVersion"
+    $sdkDirectory = Join-Path $cacheDirectory 'firebase_cpp_sdk_windows'
+    $versionHeader = Join-Path $sdkDirectory 'include\firebase\version.h'
+
+    if (Test-Path $versionHeader) {
+        Write-Host "Firebase Windows SDK önbellekten kullanılacak: $sdkDirectory" -ForegroundColor DarkGray
+        return $sdkDirectory
+    }
+
+    if (Test-Path $cacheDirectory) {
+        [System.IO.Directory]::Delete($cacheDirectory, $true)
+    }
+    [System.IO.Directory]::CreateDirectory($cacheDirectory) | Out-Null
+
+    $archivePath = Join-Path $cacheDirectory "firebase_cpp_sdk_windows_$sdkVersion.zip"
+    $downloadUrl = "https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_windows_$sdkVersion.zip"
+
+    Write-Host ''
+    Write-Host 'Firebase Windows SDK indiriliyor. Bu işlem internet hızına göre birkaç dakika sürebilir...' -ForegroundColor Cyan
+
+    try {
+        Import-Module BitsTransfer -ErrorAction Stop
+        Start-BitsTransfer -Source $downloadUrl -Destination $archivePath -ErrorAction Stop
+    } catch {
+        Write-Host 'BITS kullanılamadı; normal indirme yöntemi deneniyor...' -ForegroundColor Yellow
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath -UseBasicParsing
+    }
+
+    Write-Host 'Firebase Windows SDK çıkarılıyor...' -ForegroundColor Cyan
+    try {
+        Expand-Archive -LiteralPath $archivePath -DestinationPath $cacheDirectory -Force
+    } catch {
+        throw "Firebase Windows SDK arşivi çıkarılamadı. Diskte en az 6 GB boş alan olduğundan emin ol. Ayrıntı: $($_.Exception.Message)"
+    }
+
+    if (-not (Test-Path $versionHeader)) {
+        throw "Firebase Windows SDK eksik çıkarıldı: $versionHeader"
+    }
+
+    [System.IO.File]::Delete($archivePath)
+    return $sdkDirectory
+}
+
 Write-Host ''
 Write-Host 'Rebotfox Windows EXE hazırlanıyor...' -ForegroundColor Cyan
 Write-Host ''
@@ -90,6 +136,10 @@ $mainCpp = $mainCpp.Replace('L"rebotfox"', 'L"Rebotfox Teknik Servis"')
 $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($mainCppPath, $mainCpp, $utf8WithoutBom)
 
+$env:FIREBASE_CPP_SDK_DIR = Get-FirebaseCppSdk
+Write-Host "Firebase SDK hazır: $env:FIREBASE_CPP_SDK_DIR" -ForegroundColor Green
+
+Invoke-Flutter @('clean')
 Invoke-Flutter @('pub', 'get')
 Invoke-Flutter @('analyze', '--no-fatal-infos', '--no-fatal-warnings')
 Invoke-Flutter @('build', 'windows', '--release')
