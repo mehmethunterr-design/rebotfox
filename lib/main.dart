@@ -1,16 +1,24 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_theme.dart';
+import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Android Firebase ayarları android/app/google-services.json dosyasından
-  // otomatik olarak okunur.
-  await Firebase.initializeApp();
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.windows,
+    );
+  } else {
+    // Android ve Apple platformları kendi yerel Firebase yapılandırmalarını
+    // kullanmaya devam eder.
+    await Firebase.initializeApp();
+  }
 
   runApp(const RebotfoxApp());
 }
