@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -141,14 +142,19 @@ class _RepairPhotosScreenState extends State<RepairPhotosScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Kamera'),
-                onTap: () => Navigator.of(context).pop(ImageSource.camera),
-              ),
+              if (_supportsCamera)
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Kamera'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Galeriden seç'),
+                title: Text(
+                  defaultTargetPlatform == TargetPlatform.windows
+                      ? 'Bilgisayardan seç'
+                      : 'Galeriden seç',
+                ),
                 onTap: () => Navigator.of(context).pop(ImageSource.gallery),
               ),
             ],
@@ -205,6 +211,15 @@ class _RepairPhotosScreenState extends State<RepairPhotosScreen> {
         });
       }
     }
+  }
+
+  bool get _supportsCamera {
+    if (kIsWeb) {
+      return true;
+    }
+
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
   }
 
   Future<void> _deletePhoto(String url, RepairPhotoType type) async {
