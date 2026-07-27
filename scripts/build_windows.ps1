@@ -8,20 +8,108 @@ function Invoke-Flutter {
 
     & flutter @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "Flutter komutu başarısız oldu: flutter $($Arguments -join ' ')"
+        throw "Flutter komutu basarisiz oldu: flutter $($Arguments -join ' ')"
+    }
+}
+
+function Expand-FirebaseCppSdk {
+    param(
+        [Parameter(Mandatory = $true)][string] $ArchivePath,
+        [Parameter(Mandatory = $true)][string] $DestinationDirectory
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+    $includePrefix = 'firebase_cpp_sdk_windows/include/'
+    $releasePrefix = 'firebase_cpp_sdk_windows/libs/windows/VS2019/MD/x64/Release/'
+    $cmakeFile = 'firebase_cpp_sdk_windows/CMakeLists.txt'
+    $destinationRoot = [System.IO.Path]::GetFullPath($DestinationDirectory)
+    if (-not $destinationRoot.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
+        $destinationRoot += [System.IO.Path]::DirectorySeparatorChar
+    }
+
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)
+    try {
+        foreach ($entry in $archive.Entries) {
+            $entryName = $entry.FullName.Replace('\', '/')
+            $selected = $entryName.Equals($cmakeFile, [System.StringComparison]::Ordinal) -or
+                $entryName.StartsWith($includePrefix, [System.StringComparison]::Ordinal) -or
+                $entryName.StartsWith($releasePrefix, [System.StringComparison]::Ordinal)
+
+            if (-not $selected -or $entryName.EndsWith('/')) {
+                continue
+            }
+
+            $relativePath = $entryName.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+            $destinationPath = [System.IO.Path]::GetFullPath(
+                (Join-Path $DestinationDirectory $relativePath)
+            )
+
+            if (-not $destinationPath.StartsWith(
+                $destinationRoot,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )) {
+                throw "Firebase ZIP gecersiz bir dosya yolu iceriyor: $entryName"
+            }
+
+            $parentDirectory = Split-Path -Parent $destinationPath
+            [System.IO.Directory]::CreateDirectory($parentDirectory) | Out-Null
+
+            $inputStream = $null
+            $outputStream = $null
+            try {
+                $inputStream = $entry.Open()
+                $outputStream = [System.IO.File]::Create($destinationPath)
+                $inputStream.CopyTo($outputStream)
+            } finally {
+                if ($outputStream) {
+                    $outputStream.Dispose()
+                }
+                if ($inputStream) {
+                    $inputStream.Dispose()
+                }
+            }
+        }
+    } finally {
+        $archive.Dispose()
     }
 }
 
 function Get-FirebaseCppSdk {
     $sdkVersion = '13.9.0'
+    $expectedArchiveBytes = 958942848
     $cacheRoot = Join-Path $env:LOCALAPPDATA 'Rebotfox'
     $cacheDirectory = Join-Path $cacheRoot "firebase_cpp_sdk_$sdkVersion"
+    $archiveName = "firebase_cpp_sdk_windows_$sdkVersion.zip"
+    $archivePath = Join-Path $cacheRoot $archiveName
+    $legacyArchivePath = Join-Path $cacheDirectory $archiveName
     $sdkDirectory = Join-Path $cacheDirectory 'firebase_cpp_sdk_windows'
     $versionHeader = Join-Path $sdkDirectory 'include\firebase\version.h'
+    $cmakeFile = Join-Path $sdkDirectory 'CMakeLists.txt'
+    $releaseDirectory = Join-Path $sdkDirectory 'libs\windows\VS2019\MD\x64\Release'
+    $requiredFiles = @(
+        $versionHeader,
+        $cmakeFile,
+        (Join-Path $releaseDirectory 'firebase_app.lib'),
+        (Join-Path $releaseDirectory 'firebase_auth.lib'),
+        (Join-Path $releaseDirectory 'firebase_firestore.lib'),
+        (Join-Path $releaseDirectory 'firebase_storage.lib')
+    )
+    $cacheReady = ($requiredFiles | Where-Object { -not (Test-Path $_) }).Count -eq 0
 
-    if (Test-Path $versionHeader) {
-        Write-Host "Firebase Windows SDK önbellekten kullanılacak: $sdkDirectory" -ForegroundColor DarkGray
+    if ($cacheReady) {
+        Write-Host "Firebase Windows SDK onbellekten kullanilacak: $sdkDirectory" -ForegroundColor DarkGray
         return $sdkDirectory
+    }
+
+    [System.IO.Directory]::CreateDirectory($cacheRoot) | Out-Null
+
+    if (
+        -not (Test-Path $archivePath) -and
+        (Test-Path $legacyArchivePath) -and
+        (Get-Item $legacyArchivePath).Length -eq $expectedArchiveBytes
+    ) {
+        [System.IO.File]::Move($legacyArchivePath, $archivePath)
     }
 
     if (Test-Path $cacheDirectory) {
@@ -29,29 +117,46 @@ function Get-FirebaseCppSdk {
     }
     [System.IO.Directory]::CreateDirectory($cacheDirectory) | Out-Null
 
-    $archivePath = Join-Path $cacheDirectory "firebase_cpp_sdk_windows_$sdkVersion.zip"
+    if (
+        (Test-Path $archivePath) -and
+        (Get-Item $archivePath).Length -ne $expectedArchiveBytes
+    ) {
+        [System.IO.File]::Delete($archivePath)
+    }
+
     $downloadUrl = "https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_windows_$sdkVersion.zip"
+    if (-not (Test-Path $archivePath)) {
+        Write-Host ''
+        Write-Host 'Firebase Windows SDK indiriliyor. Bu islem birkac dakika surebilir...' -ForegroundColor Cyan
 
-    Write-Host ''
-    Write-Host 'Firebase Windows SDK indiriliyor. Bu işlem internet hızına göre birkaç dakika sürebilir...' -ForegroundColor Cyan
-
-    try {
-        Import-Module BitsTransfer -ErrorAction Stop
-        Start-BitsTransfer -Source $downloadUrl -Destination $archivePath -ErrorAction Stop
-    } catch {
-        Write-Host 'BITS kullanılamadı; normal indirme yöntemi deneniyor...' -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath -UseBasicParsing
+        try {
+            Import-Module BitsTransfer -ErrorAction Stop
+            Start-BitsTransfer -Source $downloadUrl -Destination $archivePath -ErrorAction Stop
+        } catch {
+            if (Test-Path $archivePath) {
+                [System.IO.File]::Delete($archivePath)
+            }
+            Write-Host 'BITS kullanilamadi; normal indirme yontemi deneniyor...' -ForegroundColor Yellow
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $archivePath -UseBasicParsing
+        }
+    } else {
+        Write-Host 'Daha once indirilen Firebase ZIP kullanilacak.' -ForegroundColor DarkGray
     }
 
-    Write-Host 'Firebase Windows SDK çıkarılıyor...' -ForegroundColor Cyan
-    try {
-        Expand-Archive -LiteralPath $archivePath -DestinationPath $cacheDirectory -Force
-    } catch {
-        throw "Firebase Windows SDK arşivi çıkarılamadı. Diskte en az 6 GB boş alan olduğundan emin ol. Ayrıntı: $($_.Exception.Message)"
+    if ((Get-Item $archivePath).Length -ne $expectedArchiveBytes) {
+        throw 'Firebase Windows SDK indirmesi eksik kaldi. Betigi yeniden calistir.'
     }
 
-    if (-not (Test-Path $versionHeader)) {
-        throw "Firebase Windows SDK eksik çıkarıldı: $versionHeader"
+    Write-Host 'Firebase Windows SDK icinden gerekli x64 dosyalari cikariliyor...' -ForegroundColor Cyan
+    try {
+        Expand-FirebaseCppSdk -ArchivePath $archivePath -DestinationDirectory $cacheDirectory
+    } catch {
+        throw "Firebase Windows SDK cikarilamadi. C surucusunde en az 5 GB bos alan birak. Ayrinti: $($_.Exception.Message)"
+    }
+
+    $missingFiles = $requiredFiles | Where-Object { -not (Test-Path $_) }
+    if ($missingFiles.Count -gt 0) {
+        throw "Firebase Windows SDK eksik cikarildi: $($missingFiles -join ', ')"
     }
 
     [System.IO.File]::Delete($archivePath)
@@ -59,20 +164,20 @@ function Get-FirebaseCppSdk {
 }
 
 Write-Host ''
-Write-Host 'Rebotfox Windows EXE hazırlanıyor...' -ForegroundColor Cyan
+Write-Host 'Rebotfox Windows EXE hazirlaniyor...' -ForegroundColor Cyan
 Write-Host ''
 
 if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
-    throw 'Flutter bulunamadı. Flutter kurulumunu ve PATH ayarını kontrol et.'
+    throw 'Flutter bulunamadi. Flutter kurulumunu ve PATH ayarini kontrol et.'
 }
 
 $vsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 $vsInstaller = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
 if (-not (Test-Path $vsWhere)) {
-    Write-Host 'Visual Studio bulunamadı.' -ForegroundColor Yellow
-    Write-Host 'Visual Studio Community kurulumunda "Desktop development with C++" iş yükünü seç.'
+    Write-Host 'Visual Studio bulunamadi.' -ForegroundColor Yellow
+    Write-Host 'Visual Studio Community kurulumunda "Desktop development with C++" is yukunu sec.'
     Start-Process 'https://visualstudio.microsoft.com/vs/community/'
-    throw 'Visual Studio kurulduktan sonra BUILD_WINDOWS_EXE.bat dosyasını yeniden çalıştır.'
+    throw 'Visual Studio kurulduktan sonra BUILD_WINDOWS_EXE.bat dosyasini yeniden calistir.'
 }
 
 $visualStudioPath = & $vsWhere `
@@ -82,11 +187,11 @@ $visualStudioPath = & $vsWhere `
     -property installationPath
 
 if (-not $visualStudioPath) {
-    Write-Host 'Desktop development with C++ iş yükü eksik.' -ForegroundColor Yellow
+    Write-Host 'Desktop development with C++ is yuku eksik.' -ForegroundColor Yellow
     if (Test-Path $vsInstaller) {
         Start-Process $vsInstaller
     }
-    throw 'Visual Studio Installer üzerinden Desktop development with C++ iş yükünü ekle.'
+    throw 'Visual Studio Installer uzerinden Desktop development with C++ is yukunu ekle.'
 }
 
 Invoke-Flutter @('config', '--enable-windows-desktop')
@@ -127,7 +232,7 @@ public static class RebotfoxNativeMethods
     $bitmap.Dispose()
     [RebotfoxNativeMethods]::DestroyIcon($iconHandle) | Out-Null
 } catch {
-    Write-Host 'Rebotfox simgesi dönüştürülemedi; varsayılan Windows simgesi kullanılacak.' -ForegroundColor Yellow
+    Write-Host 'Rebotfox simgesi donusturulemedi; varsayilan Windows simgesi kullanilacak.' -ForegroundColor Yellow
 }
 
 $mainCppPath = Join-Path $runnerDirectory 'main.cpp'
@@ -137,7 +242,7 @@ $utf8WithoutBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($mainCppPath, $mainCpp, $utf8WithoutBom)
 
 $env:FIREBASE_CPP_SDK_DIR = Get-FirebaseCppSdk
-Write-Host "Firebase SDK hazır: $env:FIREBASE_CPP_SDK_DIR" -ForegroundColor Green
+Write-Host "Firebase SDK hazir: $env:FIREBASE_CPP_SDK_DIR" -ForegroundColor Green
 
 Invoke-Flutter @('clean')
 Invoke-Flutter @('pub', 'get')
@@ -153,7 +258,7 @@ $releaseDirectory = $releaseCandidates |
     Select-Object -First 1
 
 if (-not $releaseDirectory) {
-    throw 'Windows Release klasörü bulunamadı.'
+    throw 'Windows Release klasoru bulunamadi.'
 }
 
 $distDirectory = Join-Path $repositoryRoot 'dist'
@@ -163,12 +268,12 @@ Compress-Archive -Path (Join-Path $releaseDirectory '*') -DestinationPath $zipPa
 
 $exePath = Join-Path $releaseDirectory 'rebotfox.exe'
 if (-not (Test-Path $exePath)) {
-    throw 'rebotfox.exe derleme sonrasında bulunamadı.'
+    throw 'rebotfox.exe derleme sonrasinda bulunamadi.'
 }
 
 Write-Host ''
-Write-Host 'Derleme tamamlandı.' -ForegroundColor Green
+Write-Host 'Derleme tamamlandi.' -ForegroundColor Green
 Write-Host "EXE: $exePath"
-Write-Host "Taşınabilir paket: $zipPath"
+Write-Host "Tasinabilir paket: $zipPath"
 
 Start-Process explorer.exe -ArgumentList "/select,`"$exePath`""
