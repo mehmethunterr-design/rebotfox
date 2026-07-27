@@ -1,0 +1,60 @@
+name: Windows bildirim eklentisi doğrulaması
+
+on:
+  push:
+    branches:
+      - agent/verify-windows-plugin-fix
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Flutter kur
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Test projesi oluştur
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows --project-name plugin_verify .ci/plugin_verify
+          Push-Location .ci/plugin_verify
+          flutter pub add flutter_local_notifications:19.5.0
+
+          $pluginName = 'flutter_local_notifications_windows'
+          $metadataPath = '.flutter-plugins-dependencies'
+          $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json
+          $metadata.plugins.windows = @(
+            $metadata.plugins.windows | Where-Object { $_.name -ne $pluginName }
+          )
+
+          $filteredGraph = @()
+          foreach ($dependency in @($metadata.dependencyGraph)) {
+            if ($dependency.name -eq $pluginName) { continue }
+            if ($null -ne $dependency.dependencies) {
+              $dependency.dependencies = @(
+                $dependency.dependencies | Where-Object { $_ -ne $pluginName }
+              )
+            }
+            $filteredGraph += $dependency
+          }
+          $metadata.dependencyGraph = $filteredGraph
+          $metadata | ConvertTo-Json -Depth 100 | Set-Content $metadataPath -Encoding utf8
+
+          flutter build windows --release --no-pub
+
+          if ((Get-Content windows/flutter/generated_plugins.cmake -Raw) -match $pluginName) {
+            throw 'Windows bildirim eklentisi derleme listesinde kalmış.'
+          }
+          Pop-Location
