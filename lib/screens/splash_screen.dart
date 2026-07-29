@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/brand.dart';
 import 'home_shell.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -27,11 +28,11 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-    _scale = Tween<double>(begin: .88, end: 1).animate(
+    _scale = Tween<double>(begin: .86, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
     _controller.forward();
-    _timer = Timer(const Duration(milliseconds: 2200), _openApp);
+    _timer = Timer(const Duration(milliseconds: 2100), _openApp);
   }
 
   void _openApp() {
@@ -39,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         pageBuilder: (_, __, ___) => const HomeShell(),
-        transitionDuration: const Duration(milliseconds: 450),
+        transitionDuration: const Duration(milliseconds: 420),
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           child: child,
@@ -61,9 +62,9 @@ class _SplashScreenState extends State<SplashScreen>
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: RadialGradient(
-            center: Alignment(0, -.2),
-            radius: 1.15,
-            colors: [Color(0xFF0C3D32), AppColors.background],
+            center: Alignment(0, -.25),
+            radius: 1.18,
+            colors: [Color(0xFF123D68), AppColors.background],
           ),
         ),
         child: SafeArea(
@@ -76,48 +77,56 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 184,
-                      height: 184,
-                      padding: const EdgeInsets.all(8),
+                      width: 150,
+                      height: 150,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(38),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [AppColors.primary, AppColors.secondary],
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: .22),
-                            blurRadius: 42,
-                            spreadRadius: 5,
+                            color: AppColors.primary.withValues(alpha: .3),
+                            blurRadius: 48,
+                            spreadRadius: 4,
                           ),
                         ],
                       ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/rebotfox_logo_round.png',
-                          fit: BoxFit.cover,
-                        ),
+                      child: const Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(Icons.memory_rounded, size: 82, color: Colors.white),
+                          Positioned(
+                            right: 24,
+                            bottom: 25,
+                            child: Icon(Icons.build_rounded, size: 32, color: Colors.white),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 26),
+                    const SizedBox(height: 28),
                     const Text(
-                      'REBOTFOX',
+                      AppBrand.name,
                       style: TextStyle(
-                        fontSize: 31,
+                        fontSize: 36,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
+                        letterSpacing: -.8,
                       ),
                     ),
                     const SizedBox(height: 7),
                     const Text(
-                      'Telefon Teknik Servisi',
+                      AppBrand.subtitle,
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: .3,
                       ),
                     ),
-                    const SizedBox(height: 42),
+                    const SizedBox(height: 40),
                     const SizedBox(
-                      width: 128,
+                      width: 132,
                       child: LinearProgressIndicator(
                         minHeight: 3,
                         borderRadius: BorderRadius.all(Radius.circular(20)),
@@ -127,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     const SizedBox(height: 14),
                     const Text(
-                      'Hızlı • Güvenilir • Profesyonel',
+                      'Hızlı • Güvenli • Profesyonel',
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 11,
