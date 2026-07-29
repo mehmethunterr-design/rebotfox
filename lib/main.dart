@@ -8,7 +8,18 @@ import 'screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // Android, Firebase ayarını google-services.json dosyasından okur.
+  // Web yapılandırması henüz eklenmemişse uygulamanın tasarım ön izlemesi
+  // yine de açılır. Firebase kullanan ekranlar web ayarı tamamlanana kadar
+  // çalışmayabilir.
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stackTrace) {
+    debugPrint('Firebase başlatılamadı: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+
   runApp(const BlueTechApp());
 }
 
