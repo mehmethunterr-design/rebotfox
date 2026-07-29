@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
+import '../core/brand.dart';
 import '../models/repair.dart';
 
 class RebotfoxLogo extends StatelessWidget {
@@ -17,24 +18,29 @@ class RebotfoxLogo extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary.withValues(alpha: .35)),
+            borderRadius: BorderRadius.circular(compact ? 13 : 17),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.primary, AppColors.secondary],
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: .12),
-                blurRadius: 18,
+                color: AppColors.primary.withValues(alpha: .2),
+                blurRadius: 20,
               ),
             ],
           ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/rebotfox_logo_round.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.power_settings_new_rounded,
-                color: AppColors.primary,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(Icons.memory_rounded, color: Colors.white, size: compact ? 25 : 32),
+              Positioned(
+                right: compact ? 5 : 7,
+                bottom: compact ? 5 : 7,
+                child: Icon(Icons.build_rounded, color: Colors.white, size: compact ? 11 : 14),
               ),
-            ),
+            ],
           ),
         ),
         const SizedBox(width: 12),
@@ -43,17 +49,17 @@ class RebotfoxLogo extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'REBOTFOX',
+              AppBrand.name,
               style: TextStyle(
                 color: AppColors.text,
                 fontSize: compact ? 18 : 23,
                 fontWeight: FontWeight.w900,
-                letterSpacing: -.3,
+                letterSpacing: -.5,
               ),
             ),
             if (showSubtitle)
               const Text(
-                'Telefon Teknik Servisi',
+                AppBrand.subtitle,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 11),
               ),
           ],

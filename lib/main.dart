@@ -3,26 +3,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_theme.dart';
+import 'core/brand.dart';
 import 'screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Android Firebase ayarları android/app/google-services.json dosyasından
-  // otomatik olarak okunur.
-  await Firebase.initializeApp();
+  // Android, Firebase ayarını google-services.json dosyasından okur.
+  // Web yapılandırması henüz eklenmemişse uygulamanın tasarım ön izlemesi
+  // yine de açılır. Firebase kullanan ekranlar web ayarı tamamlanana kadar
+  // çalışmayabilir.
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stackTrace) {
+    debugPrint('Firebase başlatılamadı: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 
-  runApp(const RebotfoxApp());
+  runApp(const BlueTechApp());
 }
 
-class RebotfoxApp extends StatelessWidget {
-  const RebotfoxApp({super.key});
+class BlueTechApp extends StatelessWidget {
+  const BlueTechApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Rebotfox',
+      title: AppBrand.appTitle,
       theme: AppTheme.dark(),
       locale: const Locale('tr', 'TR'),
       supportedLocales: const [Locale('tr', 'TR')],
